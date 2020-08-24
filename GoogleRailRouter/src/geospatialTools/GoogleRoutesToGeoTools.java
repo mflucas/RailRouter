@@ -25,9 +25,9 @@ import org.locationtech.jts.geom.MultiLineString;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import com.google.maps.model.DirectionsLeg;
+import com.google.maps.model.DirectionsStep;
 import com.google.maps.model.EncodedPolyline;
 import com.google.maps.model.LatLng;
-
 
 public class GoogleRoutesToGeoTools {
 
@@ -39,56 +39,57 @@ public class GoogleRoutesToGeoTools {
 	 */
 	public static void writeShapefile(String shapeFileName, String shapefileFolderPath,
 			List<SimpleFeature> routeFeatures) throws IOException {
+		System.out.println("Writing Shapefile");
 
-		/*
-		 * Create a shapefile from feature collection
-		 */
-
-		File newShapefile = createNewShapefile(shapeFileName, shapefileFolderPath);
+		File newShapefile = new File(shapefileFolderPath + shapeFileName + ".shp");
+		System.out.println(0);
 
 		ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
+		System.out.println(1);
 
 		Map<String, Serializable> params = new HashMap<>();
 		params.put("url", newShapefile.toURI().toURL());
 		params.put("create spatial index", Boolean.TRUE);
+		System.out.println(2);
 
 		ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
 
 		newDataStore.createSchema(RouteTypeDef.ROUTE());
-
+		System.out.println(3);
 		/*
 		 * Write the features to the shapfile
 		 */
-	    Transaction transaction = new DefaultTransaction("create");
+		Transaction transaction = new DefaultTransaction("create");
+		System.out.println(4);
 
-        String typeName = newDataStore.getTypeNames()[0];
-        SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
-        SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
-        System.out.println("SHAPE:" + SHAPE_TYPE);
-        
-        if (featureSource instanceof SimpleFeatureStore) {
-            SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
-            /*
-             * SimpleFeatureStore has a method to add features from a
-             * SimpleFeatureCollection object, so we use the ListFeatureCollection
-             * class to wrap our list of features.
-             */
-            SimpleFeatureCollection collection = new ListFeatureCollection(RouteTypeDef.ROUTE(), routeFeatures);
-            featureStore.setTransaction(transaction);
-            try {
-                featureStore.addFeatures(collection);
-                transaction.commit();
-            } catch (Exception problem) {
-                problem.printStackTrace();
-                transaction.rollback();
-            } finally {
-                transaction.close();
-            }
-            System.exit(0); // success!
-        } else {
-            System.out.println(typeName + " does not support read/write access");
-            System.exit(1);
-        }
+		String typeName = newDataStore.getTypeNames()[0];
+		SimpleFeatureSource featureSource = newDataStore.getFeatureSource(typeName);
+		SimpleFeatureType SHAPE_TYPE = featureSource.getSchema();
+		System.out.println("SHAPE:" + SHAPE_TYPE);
+
+		if (featureSource instanceof SimpleFeatureStore) {
+			SimpleFeatureStore featureStore = (SimpleFeatureStore) featureSource;
+			/*
+			 * SimpleFeatureStore has a method to add features from a
+			 * SimpleFeatureCollection object, so we use the ListFeatureCollection class to
+			 * wrap our list of features.
+			 */
+			SimpleFeatureCollection collection = new ListFeatureCollection(RouteTypeDef.ROUTE(), routeFeatures);
+			featureStore.setTransaction(transaction);
+			try {
+				featureStore.addFeatures(collection);
+				transaction.commit();
+			} catch (Exception problem) {
+				problem.printStackTrace();
+				transaction.rollback();
+			} finally {
+				transaction.close();
+			}
+			System.exit(0); // success!
+		} else {
+			System.out.println(typeName + " does not support read/write access");
+			System.exit(1);
+		}
 	}
 
 	/**
@@ -141,7 +142,7 @@ public class GoogleRoutesToGeoTools {
 		for (ListIterator<RailRouteByStage> iter = routesList.listIterator(); iter.hasNext();) {
 			RailRouteByStage railLeg = iter.next();
 			DirectionsLeg thisLeg = railLeg.getLeg();
-			
+
 			long distance = railLeg.getTransitDistance();
 			long duration = railLeg.getTransitTime();
 			long depTime = thisLeg.departureTime.toEpochSecond();
@@ -151,12 +152,12 @@ public class GoogleRoutesToGeoTools {
 			String products = railLeg.getProducts().toString();
 			double speed = railLeg.getSpeed();
 
-			SimpleFeature thisFeature = createFeature(railLeg, from_to, distance, duration, depTime, arrTime, steps, Integer.toString(featureId), products, speed
-					);
+			SimpleFeature thisFeature = createFeature(railLeg, from_to, distance, duration, depTime, arrTime, steps,
+					Integer.toString(featureId), products, speed);
 			features.add(thisFeature);
 			featureId++;
+			System.out.println(featureId+": Created feature "+from_to);
 		}
-		
 
 		return features;
 	}
@@ -175,11 +176,10 @@ public class GoogleRoutesToGeoTools {
 	 * @return
 	 */
 	public static SimpleFeature createFeature(RailRouteByStage route, String from_to, Long distance, Long duration,
-			Long depTime, Long arrTime, String steps, String featureId, String products,Double speed) {
+			Long depTime, Long arrTime, String steps, String featureId, String products, Double speed) {
 
 		SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(RouteTypeDef.ROUTE());
-		MultiLineString lineGeometry = route.getMlineString();
-
+		MultiLineString lineGeometry = railRouteToMultiLineString(route.getRailSteps());
 		featureBuilder.add(lineGeometry);
 		featureBuilder.add(from_to);
 		featureBuilder.add(distance);
@@ -212,15 +212,30 @@ public class GoogleRoutesToGeoTools {
 		}
 
 		GeometryFactory geometryFactory = new GeometryFactory();
-		
 
-		
 		LineString routeAsLineString = geometryFactory
 				.createLineString((CoordinateXY[]) points.toArray(new CoordinateXY[] {}));
-	
-
 
 		return routeAsLineString;
+	}
+/**
+ * Combine steps geometry into multilinestring
+ * @param steps
+ * @return
+ */
+	public static MultiLineString railRouteToMultiLineString(ArrayList<DirectionsStep> steps) {
+
+		List<LineString> lineArray = new ArrayList<>();
+		GeometryFactory geometryFactory = new GeometryFactory();
+
+		for (ListIterator<DirectionsStep> iter = steps.listIterator(); iter.hasNext();) {
+			DirectionsStep step = iter.next();
+			lineArray.add(GoogleRoutesToGeoTools.encodedPolylineToLineString(step.polyline));
+		}
+		LineString[] formattedArray = lineArray.toArray(new LineString[lineArray.size()]);
+		MultiLineString mlineString = geometryFactory.createMultiLineString(formattedArray);
+
+		return mlineString;
 	}
 
 }

@@ -136,6 +136,15 @@ public class Tools {
 			
 		    return retGeom;
 		  }
-	
+	 
+	 
+	 
+		public static Geometry FeatureToPoint(SimpleFeature geom) {
+			
+			Geometry geometry = (Geometry) geom.getDefaultGeometry();
+
+			return geometry;
+			
+		}
 
 }

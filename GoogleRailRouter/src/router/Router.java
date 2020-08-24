@@ -8,8 +8,10 @@ import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Objects;
 
 import com.google.maps.DirectionsApi;
@@ -21,40 +23,67 @@ import com.google.maps.model.TransitMode;
 import com.google.maps.model.TravelMode;
 
 public class Router {
-
+	
+	//Method for table with start_end routes included in one table
 	public void router() throws ApiException, InterruptedException, IOException {
+		
+		Map<String, String> cityPairs = produceFromToRelation(Constants.METRO_PAIRS);
+		
+        for (Map.Entry<String,String> entry : cityPairs.entrySet())  {
+        	String cityFrom = entry.getKey();
+        	String cityTo = entry.getValue();
+        	
+        	
+        	List<DirectionsRoute> routes = routeListProducer(cityFrom, cityTo);
+        	String fileName = cityFrom + "_" + cityTo;
+        	
+        	if(routes != null) {
+				saveRoute(routes, fileName);
+				System.out.println("Saved: " + fileName);
 
-		List<String> cityList = produceCityList(Constants.METRO_REGIONS);
-		List<String> cityListStart = produceCityList(Constants.METRO_REGIONS_Start);
+			} else {
+				System.out.println("__________________Not saved: " + fileName);
 
-		for (ListIterator<String> from = cityListStart.listIterator(); from.hasNext();) {
-			String cityFrom = from.next();
-
-			for (ListIterator<String> to = cityList.listIterator(); to.hasNext();) {
-				String cityTo = to.next();
-
-				if (cityTo != cityFrom) {
-
-					System.out.println(cityFrom +" to "+ cityTo);
-
-					List<DirectionsRoute> routes = routeListProducer(cityFrom, cityTo);
-				
-					
-					String fileName = cityFrom + "_" + cityTo;
-					if(routes != null) {
-						saveRoute(routes, fileName);
-						System.out.println("Saved: " + fileName);
-
-					} else {
-						System.out.println("__________________Not saved: " + fileName);
-
-					}
-
-				}
 			}
-		}
+        }
 
 	}
+	
+//Method for iterating over all tables
+//	public void router() throws ApiException, InterruptedException, IOException {
+//
+//		List<String> cityList = produceCityList(Constants.METRO_REGIONS);
+//		List<String> cityListStart = produceCityList(Constants.METRO_REGIONS_Start);
+//
+//		for (ListIterator<String> from = cityListStart.listIterator(); from.hasNext();) {
+//			String cityFrom = from.next();
+//
+//			for (ListIterator<String> to = cityList.listIterator(); to.hasNext();) {
+//				String cityTo = to.next();
+//
+//				if (cityTo != cityFrom) {
+//
+//					System.out.println(cityFrom +" to "+ cityTo);
+//
+//					List<DirectionsRoute> routes = routeListProducer(cityFrom, cityTo);
+//				
+//					
+//					String fileName = cityFrom + "_" + cityTo;
+//					if(routes != null) {
+//						saveRoute(routes, fileName);
+//						System.out.println("Saved: " + fileName);
+//
+//					} else {
+//						System.out.println("__________________Not saved: " + fileName);
+//
+//					}
+//
+//				}
+//			}
+//		}
+//
+//	}
+	
 
 	public static List<DirectionsRoute> routeListProducer(String cityFrom, String cityTo)
 			{
@@ -135,6 +164,35 @@ public class Router {
 		reader.close();
 
 		return cityList;
+
+	}
+	
+	public static Map<String, String> produceFromToRelation(String pathToFile) throws IOException {
+		
+		Map<String,String> myMap = new HashMap<String,String>();
+
+		String splitBy=";";
+		FileInputStream inputStream = new FileInputStream(pathToFile);
+		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+
+		List<String> cityList = new ArrayList<>();
+
+		reader.readLine();
+		String s = reader.readLine();
+		while (s != null) {
+			
+			String[] b = s.split(splitBy);
+			String from = b[2];
+			String to = b[3];
+			
+			myMap.put(from, to);
+
+			cityList.add(s);
+			s = reader.readLine();
+		}
+		reader.close();
+
+		return myMap;
 
 	}
 

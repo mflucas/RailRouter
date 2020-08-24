@@ -1,8 +1,13 @@
 package geospatialTools;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +23,9 @@ import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.data.simple.SimpleFeatureStore;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.swing.data.JFileDataStoreChooser;
+import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.MultiLineString;
 import org.locationtech.jts.geom.MultiPoint;
 import org.locationtech.jts.geom.Point;
 import org.opengis.feature.simple.SimpleFeature;
@@ -39,7 +46,7 @@ public class PointsToGeoTools {
 		 * Create a shapefile from feature collection
 		 */
 
-		File newShapefile = createNewShapefile(shapeFileName, shapefileFolderPath);
+		File newShapefile = new File(shapefileFolderPath + shapeFileName + ".shp");
 
 		ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
 
@@ -118,20 +125,39 @@ public class PointsToGeoTools {
  * 
  * @param routesList
  * @return
+ * @throws IOException 
  */
 
-	public static List<SimpleFeature> featureCollectionCreator(List<RailRouteByStage> routesList) {
+	public static List<SimpleFeature> featureCollectionCreator(String filePath) throws IOException {
 
 		List<SimpleFeature> features = new ArrayList<>();
+		FileInputStream inputStream = new FileInputStream(filePath);
+		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+		String splitBy=";";
+		reader.readLine();
+		String s = reader.readLine();
+		GeometryFactory geoFact = new GeometryFactory();
 
-		int featureId = 0;
-		for (ListIterator<RailRouteByStage> iter = routesList.listIterator(); iter.hasNext();) {
-			RailRouteByStage railLeg = iter.next();
+		while (s != null) {
+			//Read in data from table
+			String[] b = s.split(splitBy);
+			String name= b[0].replace("\"", "");
+			
+			System.out.println("Reading point " + name);
 
-			SimpleFeature thisFeature = createPointFromRouteStart(Integer.toString(featureId), railLeg);
+			Double lon= Double.parseDouble(b[1].replace("\"", ""));
+			Double lat= Double.parseDouble(b[2].replace("\"", ""));
+			Coordinate coordinate = new Coordinate();
+			coordinate.setX(lon);
+			coordinate.setY(lat);
+			SimpleFeature thisFeature = createPointFromCoordinate(coordinate, name);
+
 			features.add(thisFeature);
-			featureId++;
+			s = reader.readLine();
+
 		}
+		reader.close();
+	
 		
 
 		return features;
@@ -143,27 +169,21 @@ public class PointsToGeoTools {
  * @param railRoute
  * @return
  */
-	public static SimpleFeature createPointFromRouteStart(String featureId, RailRouteByStage railRoute) {
+	public static SimpleFeature createPointFromCoordinate(Coordinate coord, String name) {
 		List<Point> points = new ArrayList<>();
 		GeometryFactory geoFact = new GeometryFactory();
-		Point firstCoord = geoFact.createPoint(railRoute.getMlineString().getCoordinates()[0]);
+		Point firstCoord = geoFact.createPoint(coord);
 		points.add(firstCoord);
 		Point[] formattedArray = points.toArray(new Point[points.size()]);
 		MultiPoint mpoint = geoFact.createMultiPoint(formattedArray);
-		
-		
-		String name = railRoute.getStartLocation();
 		
 		SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(PointTypeDef.METROAREA());
 
 		featureBuilder.add(mpoint);
 		featureBuilder.add(name);
 		
-		SimpleFeature feature = featureBuilder.buildFeature(featureId);
+		SimpleFeature feature = featureBuilder.buildFeature(null);
 		return feature;
 	}
-
-
-
 
 }

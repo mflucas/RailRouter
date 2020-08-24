@@ -34,9 +34,10 @@ public class MultiPolygonShapes{
 		/*
 		 * Create a shapefile from feature collection
 		 */
-
-		File newShapefile = createNewShapefile(shapeFileName, shapefileFolderPath);
-
+		
+		
+		File newShapefile = new File(shapefileFolderPath + shapeFileName + ".shp");
+		
 		ShapefileDataStoreFactory dataStoreFactory = new ShapefileDataStoreFactory();
 
 		Map<String, Serializable> params = new HashMap<>();
@@ -48,6 +49,7 @@ public class MultiPolygonShapes{
 		newDataStore.createSchema(BufferedPointDef.BUFFPOINT());
 
 		/*
+		 * 
 		 * Write the features to the shapfile
 		 */
 	    Transaction transaction = new DefaultTransaction("create");
@@ -75,31 +77,31 @@ public class MultiPolygonShapes{
             } finally {
                 transaction.close();
             }
-            System.exit(0); // success!
+//            System.exit(0); // success!
         } else {
             System.out.println(typeName + " does not support read/write access");
-            System.exit(1);
+//            System.exit(1);
         }
 	}
 	
-	private static File createNewShapefile(String shapeFileName, String shapefileFolderPath) throws IOException {
-		String filePath = shapefileFolderPath + shapeFileName + ".shp";
-
-		JFileDataStoreChooser chooser = new JFileDataStoreChooser("shp");
-		chooser.setDialogTitle("Save shapefile");
-		chooser.setSelectedFile(new File(filePath));
-
-		int returnVal = chooser.showSaveDialog(null);
-
-		if (returnVal != JFileDataStoreChooser.APPROVE_OPTION) {
-			// the user cancelled the dialog
-			System.exit(0);
-		}
-
-		File newFile = chooser.getSelectedFile();
-
-		return newFile;
-	}
+//	private static File createNewShapefile(String shapeFileName, String shapefileFolderPath) throws IOException {
+//		String filePath = shapefileFolderPath + shapeFileName + ".shp";
+//
+//		JFileDataStoreChooser chooser = new JFileDataStoreChooser("shp");
+//		chooser.setDialogTitle("Save shapefile");
+//		chooser.setSelectedFile(new File(filePath));
+//
+//		int returnVal = chooser.showSaveDialog(null);
+//
+//		if (returnVal != JFileDataStoreChooser.APPROVE_OPTION) {
+//			// the user cancelled the dialog
+//			System.exit(0);
+//		}
+//		
+//		File newFile = chooser.getSelectedFile();
+//
+//		return newFile;
+//	}
 	
 	
 	
