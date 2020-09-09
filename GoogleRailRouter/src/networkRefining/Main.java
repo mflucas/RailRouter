@@ -14,7 +14,7 @@ public class Main {
 	public static void main(String[] args) throws NoSuchAuthorityCodeException, FactoryException, TransformException, IOException {
 		String folder = "T:\\214329\\200_DG Move HS-Rail\\40_BEARBEITUNG\\3_OD Matrix\\Graph\\Shapefiles\\";
 		
-		String networkFile = folder + "200813.shp";
+		String networkFile = folder + "FinalNetwork200825.shp";
 		String junctionsFile = folder + "Junctions.shp";
 		String metroFile = folder + "MetroAreas.shp";
 
@@ -30,7 +30,7 @@ public class Main {
 		//New network sections have to have information of all routes served
 		List<SimpleFeature> networkAsSections = Processor.routesToSections(network, simpleJunctions, simpleMetro);
 		
-		Processor.writeShapefile("NetworkAsSections", folder, networkAsSections);
+		Processor.writeShapefile("NetworkAsSections200827", folder, networkAsSections);
 
 	}
 }
