@@ -11,6 +11,15 @@ import org.opengis.referencing.operation.TransformException;
 
 public class Main {
 	
+	/**
+	 * Run this class to transform routes to sections
+	 * @param args
+	 * @throws NoSuchAuthorityCodeException
+	 * @throws FactoryException
+	 * @throws TransformException
+	 * @throws IOException
+	 */
+	
 	public static void main(String[] args) throws NoSuchAuthorityCodeException, FactoryException, TransformException, IOException {
 		String folder = "T:\\214329\\200_DG Move HS-Rail\\40_BEARBEITUNG\\3_OD Matrix\\Graph\\Shapefiles\\";
 		
